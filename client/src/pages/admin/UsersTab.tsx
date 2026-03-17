@@ -32,7 +32,7 @@ import { QrCode2, Edit, Delete, Print, Refresh, ArrowUpward, ArrowDownward, Lock
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
-  manager: "Manager",
+  manager: "CD-Mitarbeiter",
   user: "Benutzer",
 };
 
@@ -385,7 +385,7 @@ export default function UsersTab() {
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
               >
                 <MenuItem value="user">Benutzer</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
+                <MenuItem value="manager">CD-Mitarbeiter</MenuItem>
                 <MenuItem value="admin">Admin</MenuItem>
               </Select>
             </FormControl>

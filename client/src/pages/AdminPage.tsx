@@ -46,7 +46,7 @@ export default function AdminPage() {
               Kein Zugriff
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Du benötigst die Rolle Manager oder Admin, um diese Seite aufzurufen.
+              Du benötigst die Rolle CD-Mitarbeiter oder Admin, um diese Seite aufzurufen.
             </Typography>
           </CardContent>
         </Card>

@@ -30,6 +30,12 @@ import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, {Dayjs} from "dayjs";
 import "dayjs/locale/de";
 
+const ROLE_LABELS: Record<string, string> = {
+    admin: "Admin",
+    manager: "CD-Mitarbeiter",
+    user: "Benutzer",
+};
+
 const ROLE_COLORS: Record<string, "error" | "info" | "default"> = {
     admin: "error",
     manager: "info",
@@ -243,66 +249,77 @@ export default function OrdersTab() {
 
     return (
         <Box>
-            <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3}}>
-                <Typography variant="h2">
+            <Box sx={{mb: 3}}>
+                <Typography variant="h2" sx={{mb: 2}}>
                     Bestellungen
                 </Typography>
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
-                    <Box sx={{display: "flex", gap: 2, alignItems: "center"}}>
-                        <Typography variant="body2" color="text.secondary">
-                            Datum:
-                        </Typography>
-                        <DatePicker
-                            value={filterDate}
-                            onChange={(newValue) => setFilterDate(newValue)}
-                            slotProps={{
-                                textField: {
-                                    size: "small",
-                                    sx: {width: 200}
-                                }
-                            }}
-                            format="DD.MM.YYYY"
-                        />
-                        {filterDate && (
+                    <Box sx={{display: "flex", flexDirection: {xs: "column", md: "row"}, gap: 2, alignItems: {xs: "stretch", md: "center"}, flexWrap: "wrap"}}>
+                        <Box sx={{display: "flex", gap: 1, alignItems: "center", flexGrow: {xs: 1, md: 0}}}>
+                            <Typography variant="body2" color="text.secondary" sx={{display: {xs: "none", sm: "block"}}}>
+                                Datum:
+                            </Typography>
+                            <DatePicker
+                                value={filterDate}
+                                onChange={(newValue) => setFilterDate(newValue)}
+                                slotProps={{
+                                    textField: {
+                                        size: "small",
+                                        sx: {flexGrow: 1, minWidth: {xs: "auto", sm: 200}}
+                                    }
+                                }}
+                                format="DD.MM.YYYY"
+                            />
+                            {filterDate && (
+                                <Button
+                                    size="small"
+                                    onClick={() => setFilterDate(null)}
+                                    variant="outlined"
+                                    sx={{flexShrink: 0}}
+                                >
+                                    Zurücksetzen
+                                </Button>
+                            )}
+                        </Box>
+                        <Box sx={{display: "flex", gap: 1, flexWrap: "wrap"}}>
                             <Button
+                                variant="contained"
                                 size="small"
-                                onClick={() => setFilterDate(null)}
-                                variant="outlined"
+                                color={filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD')) ? "success" : "warning"}
+                                startIcon={filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD')) ?
+                                    <LockOpen/> : <Lock/>}
+                                onClick={openLockDialog}
+                                disabled={locking || !filterDate}
+                                sx={{flexGrow: {xs: 1, sm: 0}}}
                             >
-                                Filter zurücksetzen
+                                {filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD'))
+                                    ? `Fixierung aufheben`
+                                    : filterDate
+                                        ? `Fixieren`
+                                        : "Datum wählen"}
                             </Button>
-                        )}
-                        <Button
-                            variant="contained"
-                            color={filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD')) ? "success" : "warning"}
-                            startIcon={filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD')) ?
-                                <LockOpen/> : <Lock/>}
-                            onClick={openLockDialog}
-                            disabled={locking || !filterDate}
-                        >
-                            {filterDate && lockedDates.includes(filterDate.format('YYYY-MM-DD'))
-                                ? `Fixierung für ${filterDate.format('DD.MM.YYYY')} aufheben`
-                                : filterDate
-                                    ? `Bestellungen für ${filterDate.format('DD.MM.YYYY')} fixieren`
-                                    : "Datum wählen"}
-                        </Button>
-                        <Button
-                            variant="contained"
-                            startIcon={<Refresh/>}
-                            onClick={loadOrders}
-                            disabled={loading}
-                        >
-                            Aktualisieren
-                        </Button>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Print/>}
-                            onClick={handlePrint}
-                            disabled={!filterDate || sortedOrders.length === 0}
-                        >
-                            Drucken
-                        </Button>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<Refresh/>}
+                                onClick={loadOrders}
+                                disabled={loading}
+                                sx={{flexGrow: {xs: 1, sm: 0}}}
+                            >
+                                Aktualisieren
+                            </Button>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                color="primary"
+                                startIcon={<Print/>}
+                                onClick={handlePrint}
+                                disabled={!filterDate || sortedOrders.length === 0}
+                                sx={{flexGrow: {xs: 1, sm: 0}}}
+                            >
+                                Drucken
+                            </Button>
+                        </Box>
                     </Box>
                 </LocalizationProvider>
             </Box>
@@ -316,8 +333,8 @@ export default function OrdersTab() {
                     Noch keine Bestellungen vorhanden.
                 </Typography>
             ) : (
-                <TableContainer component={Paper}>
-                    <Table>
+                <TableContainer component={Paper} sx={{overflowX: "auto"}}>
+                    <Table sx={{minWidth: {xs: 650, sm: 750}}}>
                         <TableHead>
                             <TableRow>
                                 <TableCell
@@ -392,7 +409,7 @@ export default function OrdersTab() {
                                         </Typography>
                                         {o.user_role && (
                                             <Chip
-                                                label={o.user_role}
+                                                label={ROLE_LABELS[o.user_role] || o.user_role}
                                                 color={ROLE_COLORS[o.user_role] || "default"}
                                                 size="small"
                                             />
