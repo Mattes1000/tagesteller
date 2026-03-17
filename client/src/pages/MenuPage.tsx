@@ -281,9 +281,18 @@ export default function MenuPage() {
                     </Box>
 
                     {menu.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, whiteSpace: "pre-line" }}>
-                        {menu.description}
-                      </Typography>
+                      <Card variant="outlined" sx={{ mb: 2, p: 1.5, backgroundColor: "grey.50" }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 0.5, fontSize: "0.7rem" }}>
+                          Allergene:
+                        </Typography>
+                        <Box>
+                          {menu.description.split(/\s+/).filter(word => word.trim()).map((word, index) => (
+                            <Typography key={index} variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", display: "block" }}>
+                              {word}
+                            </Typography>
+                          ))}
+                        </Box>
+                      </Card>
                     )}
 
                     {!isDateLocked && (menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (

@@ -468,7 +468,7 @@ export default function MenusTab() {
                                   </Typography>
                                   {menu.description && (
                                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line" }}>
-                                      {menu.description.length > 100 ? menu.description.substring(0, 100) + '...' : menu.description}
+                                      <strong>Allergene:</strong> {menu.description.length > 100 ? menu.description.substring(0, 100) + '...' : menu.description}
                                     </Typography>
                                   )}
                                 </Box>
@@ -535,12 +535,12 @@ export default function MenusTab() {
             <TextField
               fullWidth
               size="small"
-              label="Beschreibung"
+              label="Allergene"
               multiline
               rows={4}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Beschreibe das Menü..."
+              placeholder="z.B. Gluten, Laktose, Nüsse..."
             />
 
             <TextField
