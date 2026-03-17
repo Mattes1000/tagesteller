@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMenus, placeOrder, checkOrderForDate, deleteOrder, getAvailableDates, getUsers } from "../api";
+import { getMenus, placeOrder, checkOrderForDate, deleteOrder, getAvailableDates, getUsers, getLockedDates } from "../api";
 import type { Menu, User } from "../types";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -40,6 +40,7 @@ export default function MenuPage() {
 
   const [selectedDate, setSelectedDate] = useState<Dayjs>(today);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [lockedDates, setLockedDates] = useState<string[]>([]);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasOrder, setHasOrder] = useState(false);
@@ -55,6 +56,7 @@ export default function MenuPage() {
 
   useEffect(() => {
     getAvailableDates().then(setAvailableDates);
+    getLockedDates().then(setLockedDates);
     if (isAdmin) {
       getUsers().then(setUsers);
     }
@@ -232,6 +234,8 @@ export default function MenuPage() {
         <Grid container spacing={3}>
           {menus.map((menu) => {
             const isOrdered = orderedMenuId === menu.id;
+            const dateStr = selectedDate.format('YYYY-MM-DD');
+            const isDateLocked = lockedDates.includes(dateStr);
 
             return (
               <Grid item xs={12} sm={6} md={4} key={menu.id}>
@@ -282,7 +286,7 @@ export default function MenuPage() {
                       </Typography>
                     )}
 
-                    {(menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (
+                    {!isDateLocked && (menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (
                       <Box sx={{ mb: 2 }}>
                         {(menu as any).remaining_quantity !== null && (menu as any).remaining_quantity !== undefined && (
                           <Chip

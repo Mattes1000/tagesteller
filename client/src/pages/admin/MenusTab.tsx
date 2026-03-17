@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAllMenus, getMenu, createMenu, updateMenu, deleteMenu, copyMenu } from "../../api";
+import { getAllMenus, getMenu, createMenu, updateMenu, deleteMenu, copyMenu, getMenus } from "../../api";
 import type { MenuPayload } from "../../api";
 import type { Menu } from "../../types";
 import {
@@ -27,13 +27,35 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Card,
+  CardContent,
 } from "@mui/material";
-import { ContentCopy, Delete, Edit as EditIcon, ArrowUpward, ArrowDownward, Add } from "@mui/icons-material";
+import { ContentCopy, Delete, Edit as EditIcon, ArrowUpward, ArrowDownward, Add, ChevronLeft, ChevronRight } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/de";
+
+dayjs.extend(isoWeek);
+
+function getWeekDays(date: Dayjs): Dayjs[] {
+  const monday = date.startOf('isoWeek');
+  return [0, 1, 2, 3, 4].map(offset => monday.add(offset, 'day'));
+}
+
+function formatWeekRange(weekDays: Dayjs[]): string {
+  const first = weekDays[0];
+  const last = weekDays[weekDays.length - 1];
+  return `${first.format('DD.MM.')} - ${last.format('DD.MM.YYYY')}`;
+}
+
+interface DayMenus {
+  date: string;
+  dayName: string;
+  menus: Menu[];
+}
 
 interface MenuDay {
   available_date: string;
@@ -61,6 +83,9 @@ export default function MenusTab() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [currentWeek, setCurrentWeek] = useState<Dayjs>(dayjs());
+  const [weekData, setWeekData] = useState<DayMenus[]>([]);
+  const [weekLoading, setWeekLoading] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -103,6 +128,44 @@ export default function MenusTab() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    loadWeekData();
+  }, [currentWeek]);
+
+  const loadWeekData = async () => {
+    setWeekLoading(true);
+    try {
+      const weekDays = getWeekDays(currentWeek);
+      const dayDataPromises = weekDays.map(async (day) => {
+        const dateStr = day.format('YYYY-MM-DD');
+        const menus = await getMenus(dateStr);
+        
+        return {
+          date: dateStr,
+          dayName: day.locale('de').format('dddd, DD.MM.YYYY'),
+          menus,
+        };
+      });
+      
+      const data = await Promise.all(dayDataPromises);
+      setWeekData(data);
+    } finally {
+      setWeekLoading(false);
+    }
+  };
+
+  const goToPreviousWeek = () => {
+    setCurrentWeek(prev => prev.subtract(1, 'week'));
+  };
+
+  const goToNextWeek = () => {
+    setCurrentWeek(prev => prev.add(1, 'week'));
+  };
+
+  const goToCurrentWeek = () => {
+    setCurrentWeek(dayjs());
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -158,6 +221,7 @@ export default function MenusTab() {
       setEditId(null);
       setDialogOpen(false);
       load();
+      loadWeekData();
     } finally {
       setSaving(false);
     }
@@ -173,6 +237,7 @@ export default function MenusTab() {
     await copyMenu(id);
     showToast("Menü kopiert!");
     load();
+    loadWeekData();
   };
 
   const handleDelete = async (id: number, name: string) => {
@@ -180,6 +245,7 @@ export default function MenusTab() {
     await deleteMenu(id);
     showToast("Menü gelöscht.");
     load();
+    loadWeekData();
   };
 
   const addDate = () => {
@@ -329,6 +395,8 @@ export default function MenusTab() {
     </Box>
   );
 
+  const weekDays = getWeekDays(currentWeek);
+
   return (
     <Box>
       <Box
@@ -343,6 +411,94 @@ export default function MenusTab() {
         <Button variant="contained" onClick={openNew} startIcon={<EditIcon />}>
           Neues Menü
         </Button>
+      </Box>
+
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+          <IconButton onClick={goToPreviousWeek} color="primary" size="small">
+            <ChevronLeft />
+          </IconButton>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              Wochenübersicht: KW {currentWeek.isoWeek()} ({formatWeekRange(weekDays)})
+            </Typography>
+          </Box>
+          <IconButton onClick={goToNextWeek} color="primary" size="small">
+            <ChevronRight />
+          </IconButton>
+          <Button variant="outlined" onClick={goToCurrentWeek} size="small">
+            Aktuelle Woche
+          </Button>
+        </Box>
+
+        {weekLoading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer component={Paper} elevation={2}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Wochentag</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Konfigurierte Menüs</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {weekData.map((dayData) => (
+                  <TableRow key={dayData.date}>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {dayData.dayName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {dayData.menus.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary">
+                          Keine Menüs konfiguriert
+                        </Typography>
+                      ) : (
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                          {dayData.menus.map((menu) => (
+                            <Card key={menu.id} variant="outlined" sx={{ p: 1 }}>
+                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {menu.name}
+                                  </Typography>
+                                  {menu.description && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "pre-line" }}>
+                                      {menu.description.length > 100 ? menu.description.substring(0, 100) + '...' : menu.description}
+                                    </Typography>
+                                  )}
+                                </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Typography variant="body2" color="primary" sx={{ fontWeight: 700 }}>
+                                    {menu.price.toFixed(2).replace('.', ',')}&nbsp;€
+                                  </Typography>
+                                  {(menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (
+                                    <Chip
+                                      label={`${(menu as any).remaining_quantity ?? 0}/${(menu as any).max_quantity}`}
+                                      size="small"
+                                      color={(menu as any).remaining_quantity > 0 ? "default" : "error"}
+                                    />
+                                  )}
+                                  <IconButton size="small" color="primary" onClick={() => openEdit(menu.id)}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            </Card>
+                          ))}
+                        </Box>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Box>
 
       {loading ? (
