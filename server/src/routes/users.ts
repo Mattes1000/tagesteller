@@ -38,21 +38,18 @@ export async function handleUsers(req: Request, url: URL): Promise<Response | nu
 
   // GET /api/users  — alle User (admin/manager)
   if (req.method === "GET" && path === "/api/users") {
-    const rows = db.query("SELECT id, firstname, lastname, role, qr_token, created_at FROM users ORDER BY role, lastname").all();
+    const rows = db.query("SELECT id, firstname, lastname, username, role, qr_token, created_at FROM users ORDER BY role, lastname").all();
     return Response.json(rows);
   }
 
   // POST /api/users  — neuen User anlegen
   if (req.method === "POST" && path === "/api/users") {
-    const body = await req.json() as { firstname: string; lastname: string; role: string };
-    const { firstname, lastname, role } = body;
-    if (!firstname || !lastname || !["admin", "manager", "user"].includes(role)) {
+    const body = await req.json() as { firstname: string; lastname: string; username: string; role: string };
+    const { firstname, lastname, username, role } = body;
+    if (!firstname || !lastname || !username || !["admin", "manager", "user"].includes(role)) {
       return new Response("Bad Request", { status: 400 });
     }
     const qr_token = randomUUID();
-    
-    // Generiere Username aus Vor- und Nachname
-    const username = `${firstname.toLowerCase()}.${lastname.toLowerCase()}`;
     
     // Generiere temporäres Passwort (8 Zeichen: Buchstaben + Zahlen)
     const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
@@ -113,6 +110,33 @@ export async function handleUsers(req: Request, url: URL): Promise<Response | nu
     const valid = await Bun.password.verify(currentPassword, user.password_hash);
     if (!valid) {
       return Response.json({ error: "Aktuelles Passwort ist falsch." }, { status: 401 });
+    }
+
+    const newHash = await Bun.password.hash(newPassword);
+    db.query("UPDATE users SET password_hash = $password_hash WHERE id = $id")
+      .run({ $password_hash: newHash, $id: id });
+
+    return Response.json({ success: true });
+  }
+
+  // POST /api/users/:id/admin-reset-password — Admin setzt Passwort für Benutzer
+  const matchAdminReset = path.match(/^\/api\/users\/(\d+)\/admin-reset-password$/);
+  if (req.method === "POST" && matchAdminReset) {
+    const id = parseInt(matchAdminReset[1]);
+    const body = await req.json() as { newPassword: string };
+    const { newPassword } = body;
+
+    if (!newPassword) {
+      return Response.json({ error: "Neues Passwort erforderlich." }, { status: 400 });
+    }
+
+    if (newPassword.length < 6) {
+      return Response.json({ error: "Passwort muss mindestens 6 Zeichen lang sein." }, { status: 400 });
+    }
+
+    const user = db.query("SELECT id FROM users WHERE id = $id").get({ $id: id });
+    if (!user) {
+      return Response.json({ error: "Benutzer nicht gefunden." }, { status: 404 });
     }
 
     const newHash = await Bun.password.hash(newPassword);

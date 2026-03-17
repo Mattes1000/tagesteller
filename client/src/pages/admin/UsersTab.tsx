@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import QRCode from "qrcode";
-import { getUsers, createUser, updateUser, deleteUser, regenerateQrToken } from "../../api";
+import { getUsers, createUser, updateUser, deleteUser, regenerateQrToken, adminResetPassword } from "../../api";
 import type { User } from "../../types";
 import {
   Box,
@@ -28,7 +28,7 @@ import {
   Alert,
   IconButton,
 } from "@mui/material";
-import { QrCode2, Edit, Delete, Print, Refresh, ArrowUpward, ArrowDownward } from "@mui/icons-material";
+import { QrCode2, Edit, Delete, Print, Refresh, ArrowUpward, ArrowDownward, Lock } from "@mui/icons-material";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -42,7 +42,7 @@ const ROLE_COLORS: Record<string, "error" | "info" | "default"> = {
   user: "default",
 };
 
-const EMPTY_FORM = { firstname: "", lastname: "", role: "user" };
+const EMPTY_FORM = { firstname: "", lastname: "", username: "", role: "user" };
 
 export default function UsersTab() {
   const [users, setUsers] = useState<User[]>([]);
@@ -58,6 +58,10 @@ export default function UsersTab() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempPasswordDialog, setTempPasswordDialog] = useState<{ username: string; password: string } | null>(null);
+  const [passwordResetDialog, setPasswordResetDialog] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -90,8 +94,8 @@ export default function UsersTab() {
   useEffect(() => {
     if (qrModal) {
       const loginUrl = `${window.location.origin}/login/${qrModal.qr_token}`;
-      QRCode.toDataURL(loginUrl, { 
-        width: 300, 
+      QRCode.toDataURL(loginUrl, {
+        width: 300,
         margin: 2,
         color: {
           dark: '#000000',
@@ -112,7 +116,7 @@ export default function UsersTab() {
 
   const openEdit = (u: User) => {
     setEditId(u.id);
-    setForm({ firstname: u.firstname, lastname: u.lastname, role: u.role });
+    setForm({ firstname: u.firstname, lastname: u.lastname, username: u.username, role: u.role });
     setDialogOpen(true);
   };
 
@@ -133,6 +137,7 @@ export default function UsersTab() {
 
   const handleSave = async () => {
     if (!form.firstname.trim() || !form.lastname.trim()) return;
+    if (editId === null && !form.username.trim()) return;
     setSaving(true);
     try {
       if (editId !== null) {
@@ -140,8 +145,7 @@ export default function UsersTab() {
         showToast("Benutzer gespeichert.");
       } else {
         const result = await createUser(form);
-        const username = `${form.firstname.toLowerCase()}.${form.lastname.toLowerCase()}`;
-        setTempPasswordDialog({ username, password: result.tempPassword });
+        setTempPasswordDialog({ username: form.username, password: result.tempPassword });
         showToast("Benutzer erstellt.");
       }
       setDialogOpen(false);
@@ -179,6 +183,51 @@ export default function UsersTab() {
     }
   };
 
+  const openPasswordReset = (user: User) => {
+    setPasswordResetDialog(user);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError(null);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!passwordResetDialog) return;
+
+    setPasswordError(null);
+
+    if (!newPassword || !confirmPassword) {
+      setPasswordError("Bitte beide Felder ausfüllen.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("Passwort muss mindestens 6 Zeichen lang sein.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwörter stimmen nicht überein.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await adminResetPassword(passwordResetDialog.id, newPassword);
+      if ("error" in result) {
+        setPasswordError(result.error);
+      } else {
+        showToast("Passwort erfolgreich gesetzt.");
+        setPasswordResetDialog(null);
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (err) {
+      setPasswordError("Fehler beim Setzen des Passworts.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
@@ -199,7 +248,7 @@ export default function UsersTab() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell 
+                  <TableCell
                     onClick={() => handleSort("name")}
                     sx={{ cursor: "pointer", userSelect: "none" }}
                   >
@@ -210,7 +259,7 @@ export default function UsersTab() {
                       )}
                     </Box>
                   </TableCell>
-                  <TableCell 
+                  <TableCell
                     onClick={() => handleSort("role")}
                     sx={{ cursor: "pointer", userSelect: "none" }}
                   >
@@ -254,6 +303,14 @@ export default function UsersTab() {
                           onClick={() => openEdit(u)}
                         >
                           <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openPasswordReset(u)}
+                          title="Passwort setzen"
+                        >
+                          <Lock fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
@@ -309,6 +366,17 @@ export default function UsersTab() {
               placeholder="z.B. Müller"
             />
 
+            <TextField
+              fullWidth
+              size="small"
+              label="Benutzername"
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              placeholder="z.B. maria.mueller"
+              disabled={editId !== null}
+              helperText={editId !== null ? "Benutzername kann nach Erstellung nicht geändert werden" : ""}
+            />
+
             <FormControl fullWidth size="small">
               <InputLabel>Rolle</InputLabel>
               <Select
@@ -328,7 +396,7 @@ export default function UsersTab() {
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={saving || !form.firstname.trim() || !form.lastname.trim()}
+            disabled={saving || !form.firstname.trim() || !form.lastname.trim() || (editId === null && !form.username.trim())}
           >
             {saving ? "Speichere…" : editId !== null ? "Speichern" : "Erstellen"}
           </Button>
@@ -399,8 +467,8 @@ export default function UsersTab() {
           </div>
         </DialogContent>
         <DialogActions className="no-print">
-          <Button 
-            onClick={handleRegenerateQr} 
+          <Button
+            onClick={handleRegenerateQr}
             startIcon={<Refresh />}
             disabled={regenerating}
             color="warning"
@@ -424,7 +492,7 @@ export default function UsersTab() {
             <Alert severity="info">
               Der Benutzer wurde erfolgreich erstellt. Bitte notiere das temporäre Passwort - es wird nur einmal angezeigt!
             </Alert>
-            
+
             <Box sx={{ bgcolor: "grey.100", p: 2, borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Benutzername:
@@ -432,7 +500,7 @@ export default function UsersTab() {
               <Typography variant="h6" sx={{ fontFamily: "monospace", mb: 2 }}>
                 {tempPasswordDialog?.username}
               </Typography>
-              
+
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Temporäres Passwort:
               </Typography>
@@ -440,7 +508,7 @@ export default function UsersTab() {
                 {tempPasswordDialog?.password}
               </Typography>
             </Box>
-            
+
             <Alert severity="warning">
               Der Benutzer sollte das Passwort nach dem ersten Login ändern.
             </Alert>
@@ -449,6 +517,50 @@ export default function UsersTab() {
         <DialogActions>
           <Button onClick={() => setTempPasswordDialog(null)} variant="contained">
             Verstanden
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!passwordResetDialog} onClose={() => setPasswordResetDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Passwort setzen für {passwordResetDialog?.firstname} {passwordResetDialog?.lastname}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+            {passwordError && (
+              <Alert severity="error">{passwordError}</Alert>
+            )}
+
+            <TextField
+              fullWidth
+              type="password"
+              label="Neues Passwort"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Mindestens 6 Zeichen"
+              autoFocus
+            />
+
+            <TextField
+              fullWidth
+              type="password"
+              label="Passwort bestätigen"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Passwort wiederholen"
+            />
+
+            <Alert severity="info">
+              Das Passwort wird sofort für den Benutzer gesetzt und kann zum Login verwendet werden.
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetDialog(null)}>Abbrechen</Button>
+          <Button
+            onClick={handlePasswordReset}
+            variant="contained"
+            disabled={saving}
+          >
+            {saving ? "Setze Passwort..." : "Passwort setzen"}
           </Button>
         </DialogActions>
       </Dialog>

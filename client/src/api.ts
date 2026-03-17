@@ -169,9 +169,18 @@ export async function deleteUser(id: number): Promise<void> {
   await fetch(`${BASE}/users/${id}`, { method: "DELETE" });
 }
 
-export async function regenerateQrToken(id: number): Promise<{ qr_token: string }> {
-  const res = await fetch(`${BASE}/users/${id}/regenerate-qr`, {
+export async function regenerateQrToken(userId: number): Promise<{ qr_token: string }> {
+  const res = await fetch(`${BASE}/users/${userId}/regenerate-qr`, {
     method: "POST",
+  });
+  return res.json();
+}
+
+export async function adminResetPassword(userId: number, newPassword: string): Promise<{ success: boolean } | { error: string }> {
+  const res = await fetch(`${BASE}/users/${userId}/admin-reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ newPassword }),
   });
   return res.json();
 }
