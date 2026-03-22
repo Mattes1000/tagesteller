@@ -264,17 +264,19 @@ export default function MenuPage() {
                           label="Bestellt"
                           color="success"
                           size="small"
-                          onDelete={handleCancelOrder}
+                          onDelete={isDateLocked ? undefined : handleCancelOrder}
                           deleteIcon={
-                            <IconButton
-                              size="small"
-                              sx={{
-                                padding: 0,
-                                "&:hover": { color: "error.main" }
-                              }}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
+                            isDateLocked ? undefined : (
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  padding: 0,
+                                  "&:hover": { color: "error.main" }
+                                }}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            )
                           }
                         />
                       )}
@@ -322,6 +324,14 @@ export default function MenuPage() {
                           startIcon={<Login />}
                         >
                           Anmelden zum Bestellen
+                        </Button>
+                      ) : isDateLocked ? (
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          disabled
+                        >
+                          Tag fixiert - keine Bestellungen möglich
                         </Button>
                       ) : isOrdered && !isAdmin ? (
                         <Button

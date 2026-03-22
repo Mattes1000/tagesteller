@@ -99,6 +99,17 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
 
     const targetDate = order_date || new Date().toISOString().split("T")[0];
 
+    // Check if date is locked
+    const isLocked = db.query("SELECT id FROM locked_dates WHERE locked_date = $date")
+      .get({ $date: targetDate });
+    
+    if (isLocked) {
+      return Response.json(
+        { error: "Bestellungen für diesen Tag sind fixiert und können nicht mehr aufgegeben werden." },
+        { status: 403 }
+      );
+    }
+
     // Check if user already has an order for this date
     if (user_id) {
       const existingOrder = db.query(`
@@ -164,7 +175,7 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
     return Response.json({ id: order.id, total }, { status: 201 });
   }
 
-  // DELETE /api/orders/:id - Admin löscht Bestellung nach ID
+  // DELETE /api/orders/:id - Admin löscht Bestellung nach ID (auch für fixierte Tage erlaubt)
   const matchDelete = path.match(/^\/api\/orders\/(\d+)$/);
   if (req.method === "DELETE" && matchDelete) {
     const orderId = parseInt(matchDelete[1]);

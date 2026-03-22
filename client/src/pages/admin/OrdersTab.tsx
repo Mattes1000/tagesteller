@@ -49,7 +49,7 @@ export default function OrdersTab() {
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [filterDate, setFilterDate] = useState<Dayjs | null>(dayjs());
     const [toast, setToast] = useState<string | null>(null);
-    const [deleteDialog, setDeleteDialog] = useState<{ orderId: number; customerName: string } | null>(null);
+    const [deleteDialog, setDeleteDialog] = useState<{ orderId: number; customerName: string; orderDate: string } | null>(null);
     const [locking, setLocking] = useState(false);
     const [lockedDates, setLockedDates] = useState<string[]>([]);
     const [lockDialog, setLockDialog] = useState<{ action: 'lock' | 'unlock'; date: string } | null>(null);
@@ -68,8 +68,8 @@ export default function OrdersTab() {
         loadLockedDates();
     }, []);
 
-    const openDeleteDialog = (orderId: number, customerName: string) => {
-        setDeleteDialog({orderId, customerName});
+    const openDeleteDialog = (orderId: number, customerName: string, orderDate: string) => {
+        setDeleteDialog({orderId, customerName, orderDate});
     };
 
     const closeDeleteDialog = () => {
@@ -447,7 +447,7 @@ export default function OrdersTab() {
                                         <IconButton
                                             size="small"
                                             color="error"
-                                            onClick={() => openDeleteDialog(o.id, o.user_fullname ?? o.customer_name)}
+                                            onClick={() => openDeleteDialog(o.id, o.user_fullname ?? o.customer_name, o.order_date)}
                                         >
                                             <Delete fontSize="small"/>
                                         </IconButton>
@@ -469,6 +469,11 @@ export default function OrdersTab() {
                         Möchtest du die Bestellung von <strong>{deleteDialog?.customerName}</strong> wirklich löschen?
                         Diese Aktion kann nicht rückgängig gemacht werden.
                     </DialogContentText>
+                    {deleteDialog && lockedDates.includes(deleteDialog.orderDate) && (
+                        <Alert severity="warning" sx={{ mt: 2 }}>
+                            <strong>Achtung:</strong> Dieser Tag ist fixiert.
+                        </Alert>
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeDeleteDialog}>Abbrechen</Button>
