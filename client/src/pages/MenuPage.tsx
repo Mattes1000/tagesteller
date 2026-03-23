@@ -215,19 +215,12 @@ export default function MenuPage() {
               day: (ownerState) => {
                 const dateStr = ownerState.day?.format('YYYY-MM-DD');
                 const hasOrder = dateStr && userOrderDates.includes(dateStr);
+                const isFuture = ownerState.day && (ownerState.day.isAfter(today, 'day') || ownerState.day.isSame(today, 'day'));
+                const shouldHighlight = hasOrder && isFuture;
                 return {
-                  sx: hasOrder ? {
-                    backgroundColor: '#ff7d23',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: '#e66d13',
-                    },
-                    '&.Mui-selected': {
-                      backgroundColor: '#e66d13',
-                    },
-                    '&.Mui-selected:hover': {
-                      backgroundColor: '#e66d13',
-                    },
+                  sx: shouldHighlight ? {
+                    backgroundColor: '#EDF7ED',
+                    color: '#2E7D32'
                   } : {},
                 };
               },
@@ -418,7 +411,7 @@ export default function MenuPage() {
                 Menü: <strong>{selectedMenu.name}</strong> ({selectedMenu.price.toFixed(2).replace('.', ',')}&nbsp;€)
               </Alert>
             )}
-            
+
             <FormControl fullWidth>
               <InputLabel>Benutzer auswählen</InputLabel>
               <Select

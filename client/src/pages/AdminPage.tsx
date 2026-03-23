@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import UsersTab from "./admin/UsersTab";
 import OrdersTab from "./admin/OrdersTab";
 import MenusTab from "./admin/MenusTab";
+import BackupTab from "./admin/BackupTab";
 import { useAuth } from "../context/AuthContext";
 import {
   Box,
@@ -14,7 +15,7 @@ import {
 } from "@mui/material";
 import { Lock } from "@mui/icons-material";
 
-type Tab = "menus" | "users" | "orders";
+type Tab = "menus" | "users" | "orders" | "backup";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export default function AdminPage() {
   // Validate tab on mount
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab;
-    const validTabs = user?.role === "admin" ? ["menus", "users", "orders"] : ["orders"];
+    const validTabs = user?.role === "admin" ? ["menus", "users", "orders", "backup"] : ["orders"];
     if (!tab || !validTabs.includes(tab)) {
       setSearchParams({ tab: defaultTab }, { replace: true });
     }
@@ -58,6 +59,7 @@ export default function AdminPage() {
     { id: "menus",  label: "📋 Menüs",        visible: user.role === "admin" },
     { id: "users",  label: "👤 Benutzer",     visible: user.role === "admin" },
     { id: "orders", label: "📦 Bestellungen", visible: true },
+    { id: "backup", label: "💾 Backup",       visible: user.role === "admin" },
   ];
 
   return (
@@ -75,6 +77,7 @@ export default function AdminPage() {
       {activeTab === "menus" && user.role === "admin" && <MenusTab />}
       {activeTab === "users" && user.role === "admin" && <UsersTab />}
       {activeTab === "orders" && <OrdersTab />}
+      {activeTab === "backup" && user.role === "admin" && <BackupTab />}
     </Box>
   );
 }

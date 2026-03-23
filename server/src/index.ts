@@ -1,6 +1,7 @@
 import { handleMenus } from "./routes/menus";
 import { handleOrders } from "./routes/orders";
 import { handleUsers } from "./routes/users";
+import { handleBackup } from "./routes/backup";
 import { join } from "path";
 
 const CORS = {
@@ -47,6 +48,8 @@ const server = Bun.serve({
       res = await handleOrders(req, url);
     } else if (url.pathname.startsWith("/api/users") || url.pathname.startsWith("/api/auth")) {
       res = await handleUsers(req, url);
+    } else if (url.pathname.startsWith("/api/backup")) {
+      res = await handleBackup(req, url);
     } else {
       res = await serveStatic(url.pathname);
     }
