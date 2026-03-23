@@ -61,7 +61,7 @@ export default function LoginPage() {
             <Box sx={{ textAlign: "center", mb: 4 }}>
               <Restaurant sx={{ fontSize: 64, color: "primary.main", mb: 2 }} />
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                Book a food
+                TagesTeller
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Bitte anmelden

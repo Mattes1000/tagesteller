@@ -1,4 +1,4 @@
-# Foodbook Setup
+# TagesTeller Setup
 
 ## 🚀 Erste Schritte
 
@@ -8,7 +8,7 @@ Da sich das Datenbankschema geändert hat, muss die alte Datenbank gelöscht wer
 ```bash
 # Im server-Verzeichnis
 cd server
-rm foodbook.db  # oder manuell löschen
+rm tagesteller.db  # oder manuell löschen
 ```
 
 ### 2. Dependencies installieren
@@ -115,7 +115,7 @@ Dies startet:
 
 2. **Umgebungsvariable setzen:**
    - Gehe zu deinem Service → Variables
-   - Füge hinzu: `DATABASE_PATH=/data/foodbook.db`
+   - Füge hinzu: `DATABASE_PATH=/data/tagesteller.db`
 
 3. **Automatische Variablen:**
    Railway stellt automatisch bereit:

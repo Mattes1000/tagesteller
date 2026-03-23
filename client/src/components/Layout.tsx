@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 mr: 4,
               }}
             >
-              Book a food
+              TagesTeller
             </Typography>
 
             {!isMobile ? (
@@ -204,7 +204,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           fontSize: "0.875rem",
         }}
       >
-        © {new Date().getFullYear()} Book a food
+        © {new Date().getFullYear()} TagesTeller
       </Box>
 
       {user && (

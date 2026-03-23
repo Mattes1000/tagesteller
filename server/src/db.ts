@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-const DB_PATH = process.env.DATABASE_PATH ?? "foodbook.db";
+const DB_PATH = process.env.DATABASE_PATH ?? "tagesteller.db";
 export const db = new Database(DB_PATH, { create: true });
 
 // db.exec(`PRAGMA journal_mode = WAL;`);

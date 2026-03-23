@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMenus, placeOrder, checkOrderForDate, deleteOrder, getAvailableDates, getUsers, getLockedDates } from "../api";
+import { getMenus, placeOrder, checkOrderForDate, deleteOrder, getAvailableDates, getUsers, getLockedDates, getUserOrderDates } from "../api";
 import type { Menu, User } from "../types";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -41,6 +41,7 @@ export default function MenuPage() {
   const [selectedDate, setSelectedDate] = useState<Dayjs>(today);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [lockedDates, setLockedDates] = useState<string[]>([]);
+  const [userOrderDates, setUserOrderDates] = useState<string[]>([]);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasOrder, setHasOrder] = useState(false);
@@ -60,7 +61,12 @@ export default function MenuPage() {
     if (isAdmin) {
       getUsers().then(setUsers);
     }
-  }, [isAdmin]);
+    if (user) {
+      getUserOrderDates(user.id).then(setUserOrderDates);
+    } else {
+      setUserOrderDates([]);
+    }
+  }, [isAdmin, user]);
 
   useEffect(() => {
     setLoading(true);
@@ -125,8 +131,11 @@ export default function MenuPage() {
           setHasOrder(true);
           setOrderedMenuId(menu.id);
         }
-        // Aktualisiere Menüs, um verfügbare Menge zu aktualisieren
+        // Aktualisiere Menüs und Bestelldaten
         getMenus(dateStr).then(setMenus);
+        if (user) {
+          getUserOrderDates(user.id).then(setUserOrderDates);
+        }
       }
     } catch {
       setError("Fehler beim Bestellen. Bitte versuche es erneut.");
@@ -168,9 +177,12 @@ export default function MenuPage() {
         setSuccess("Bestellung erfolgreich storniert.");
         setHasOrder(false);
         setOrderedMenuId(null);
-        // Aktualisiere Menüs, um verfügbare Menge zu aktualisieren
+        // Aktualisiere Menüs und Bestelldaten
         const dateStr = selectedDate.format('YYYY-MM-DD');
         getMenus(dateStr).then(setMenus);
+        if (user) {
+          getUserOrderDates(user.id).then(setUserOrderDates);
+        }
       }
     } catch {
       setError("Fehler beim Stornieren. Bitte versuche es erneut.");
@@ -199,7 +211,26 @@ export default function MenuPage() {
               textField: {
                 fullWidth: true,
                 sx: { maxWidth: 400 }
-              }
+              },
+              day: (ownerState) => {
+                const dateStr = ownerState.day?.format('YYYY-MM-DD');
+                const hasOrder = dateStr && userOrderDates.includes(dateStr);
+                return {
+                  sx: hasOrder ? {
+                    backgroundColor: '#ff7d23',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: '#e66d13',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: '#e66d13',
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: '#e66d13',
+                    },
+                  } : {},
+                };
+              },
             }}
             format="dddd, DD. MMMM YYYY"
           />

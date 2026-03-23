@@ -92,6 +92,11 @@ export async function getOrders(userId?: number): Promise<Order[]> {
   return res.json();
 }
 
+export async function getUserOrderDates(userId: number): Promise<string[]> {
+  const res = await fetch(`${BASE}/orders/user-dates?user_id=${userId}`);
+  return res.json();
+}
+
 export async function deleteOrder(userId: number, date: string): Promise<{ success: boolean } | { error: string }> {
   const res = await fetch(`${BASE}/orders?user_id=${userId}&date=${date}`, {
     method: "DELETE",

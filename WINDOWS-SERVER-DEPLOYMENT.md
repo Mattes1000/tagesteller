@@ -1,6 +1,6 @@
-# Foodbook - Windows Server Deployment mit Bun, PM2 und IIS
+# TagesTeller - Windows Server Deployment mit Bun, PM2 und IIS
 
-Diese Anleitung beschreibt das Production-Deployment der Foodbook-Anwendung auf einem Windows Server mit:
+Diese Anleitung beschreibt das Production-Deployment der TagesTeller-Anwendung auf einem Windows Server mit:
 - **Bun** als Runtime
 - **PM2** als Process Manager
 - **IIS** als Reverse Proxy
@@ -108,8 +108,8 @@ Oder über Server Manager:
 cd C:\inetpub\wwwroot
 
 # Repository klonen
-git clone https://github.com/Mattes1000/foodbook.git
-cd foodbook
+git clone https://github.com/Mattes1000/foodbook.git tagesteller
+cd tagesteller
 ```
 
 ### 2. Frontend bauen
@@ -158,13 +158,13 @@ Wenn alles funktioniert, mit `Ctrl+C` beenden.
 
 ### 1. PM2 Ecosystem-Datei erstellen
 
-Erstelle `C:\inetpub\wwwroot\foodbook\ecosystem.config.cjs`:
+Erstelle `C:\inetpub\wwwroot\tagesteller\ecosystem.config.cjs`:
 
 ```javascript
 module.exports = {
   apps: [{
-    name: 'foodbook',
-    cwd: 'C:\\inetpub\\wwwroot\\foodbook\\server',
+    name: 'tagesteller',
+    cwd: 'C:\\inetpub\\wwwroot\\tagesteller\\server',
     script: 'bun',
     args: 'run start',
     instances: 1,
@@ -175,9 +175,9 @@ module.exports = {
       NODE_ENV: 'production',
       PORT: '3001'
     },
-    error_file: 'C:\\inetpub\\wwwroot\\foodbook\\logs\\err.log',
-    out_file: 'C:\\inetpub\\wwwroot\\foodbook\\logs\\out.log',
-    log_file: 'C:\\inetpub\\wwwroot\\foodbook\\logs\\combined.log',
+    error_file: 'C:\\inetpub\\wwwroot\\tagesteller\\logs\\err.log',
+    out_file: 'C:\\inetpub\\wwwroot\\tagesteller\\logs\\out.log',
+    log_file: 'C:\\inetpub\\wwwroot\\tagesteller\\logs\\combined.log',
     time: true
   }]
 };
@@ -186,13 +186,13 @@ module.exports = {
 ### 2. Log-Verzeichnis erstellen
 
 ```powershell
-New-Item -ItemType Directory -Path "C:\inetpub\wwwroot\foodbook\logs" -Force
+New-Item -ItemType Directory -Path "C:\inetpub\wwwroot\tagesteller\logs" -Force
 ```
 
 ### 3. Anwendung mit PM2 starten
 
 ```powershell
-cd C:\inetpub\wwwroot\foodbook
+cd C:\inetpub\wwwroot\tagesteller
 pm2 start ecosystem.config.cjs
 ```
 
@@ -200,7 +200,7 @@ pm2 start ecosystem.config.cjs
 
 ```powershell
 pm2 status
-pm2 logs foodbook
+pm2 logs tagesteller
 ```
 
 ### 5. PM2 Autostart aktivieren
@@ -239,16 +239,16 @@ pm2-startup install
 
 1. Im IIS Manager: **Sites** → Rechtsklick → **Add Website**
 2. Konfiguration:
-   - **Site name:** Foodbook
-   - **Physical path:** `C:\inetpub\wwwroot\foodbook\client\dist`
+   - **Site name:** TagesTeller
+   - **Physical path:** `C:\inetpub\wwwroot\tagesteller\client\dist`
    - **Binding:**
      - Type: http
      - Port: 80
-     - Host name: `foodbook.example.com` (oder leer lassen für alle)
+     - Host name: `tagesteller.example.com` (oder leer lassen für alle)
 
 ### 3. URL Rewrite Regel erstellen
 
-1. Website **Foodbook** auswählen
+1. Website **TagesTeller** auswählen
 2. **URL Rewrite** öffnen
 3. Rechts: **Add Rule(s)** → **Reverse Proxy**
 4. Wenn gefragt: **Enable proxy** → OK
@@ -259,7 +259,7 @@ pm2-startup install
 
 ### 4. Manuelle Konfiguration (Alternative)
 
-Falls die automatische Regel nicht funktioniert, erstelle `C:\inetpub\wwwroot\foodbook\client\dist\web.config`:
+Falls die automatische Regel nicht funktioniert, erstelle `C:\inetpub\wwwroot\tagesteller\client\dist\web.config`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -306,7 +306,7 @@ Falls die automatische Regel nicht funktioniert, erstelle `C:\inetpub\wwwroot\fo
 ### 5. Website testen
 
 1. **Website starten** im IIS Manager
-2. Browser öffnen: `http://localhost` oder `http://foodbook.example.com`
+2. Browser öffnen: `http://localhost` oder `http://tagesteller.example.com`
 3. Testen:
    - Frontend lädt
    - Login funktioniert
@@ -328,12 +328,12 @@ Falls die automatische Regel nicht funktioniert, erstelle `C:\inetpub\wwwroot\fo
 
 **Option C: Self-Signed (nur für Tests)**
 ```powershell
-New-SelfSignedCertificate -DnsName "foodbook.example.com" -CertStoreLocation "cert:\LocalMachine\My"
+New-SelfSignedCertificate -DnsName "tagesteller.example.com" -CertStoreLocation "cert:\LocalMachine\My"
 ```
 
 ### 2. HTTPS Binding hinzufügen
 
-1. Im IIS Manager: Website **Foodbook** → **Bindings**
+1. Im IIS Manager: Website **TagesTeller** → **Bindings**
 2. **Add** klicken:
    - Type: https
    - Port: 443
@@ -362,7 +362,7 @@ Füge in `web.config` hinzu (vor `</rules>`):
 
 ```powershell
 # 1. Ins Projektverzeichnis
-cd C:\inetpub\wwwroot\foodbook
+cd C:\inetpub\wwwroot\tagesteller
 
 # 2. Neueste Version holen
 git pull
@@ -379,7 +379,7 @@ bun install
 cd ..
 
 # 5. PM2 neu starten
-pm2 restart foodbook
+pm2 restart tagesteller
 ```
 
 ### Datenbank-Backup
@@ -387,7 +387,7 @@ pm2 restart foodbook
 ```powershell
 # Manuelles Backup
 $date = Get-Date -Format "yyyy-MM-dd_HHmmss"
-Copy-Item "C:\inetpub\wwwroot\foodbook\server\foodbook.db" "C:\Backups\foodbook-$date.db"
+Copy-Item "C:\inetpub\wwwroot\tagesteller\server\tagesteller.db" "C:\Backups\tagesteller-$date.db"
 ```
 
 **Automatisches Backup** (Task Scheduler):
@@ -400,13 +400,13 @@ Copy-Item "C:\inetpub\wwwroot\foodbook\server\foodbook.db" "C:\Backups\foodbook-
 
 ```powershell
 # PM2 Logs
-pm2 logs foodbook
+pm2 logs tagesteller
 
 # PM2 Logs anzeigen (letzte 100 Zeilen)
-pm2 logs foodbook --lines 100
+pm2 logs tagesteller --lines 100
 
 # Log-Dateien direkt
-Get-Content C:\inetpub\wwwroot\foodbook\logs\combined.log -Tail 50 -Wait
+Get-Content C:\inetpub\wwwroot\tagesteller\logs\combined.log -Tail 50 -Wait
 ```
 
 ### PM2 Befehle
@@ -416,13 +416,13 @@ Get-Content C:\inetpub\wwwroot\foodbook\logs\combined.log -Tail 50 -Wait
 pm2 status
 
 # Anwendung neu starten
-pm2 restart foodbook
+pm2 restart tagesteller
 
 # Anwendung stoppen
-pm2 stop foodbook
+pm2 stop tagesteller
 
 # Anwendung starten
-pm2 start foodbook
+pm2 start tagesteller
 
 # Logs löschen
 pm2 flush
@@ -442,8 +442,8 @@ pm2 monit
 **Lösung:**
 ```powershell
 pm2 status
-pm2 restart foodbook
-pm2 logs foodbook
+pm2 restart tagesteller
+pm2 logs tagesteller
 ```
 
 ### Problem: API-Anfragen schlagen fehl (404)
@@ -461,7 +461,7 @@ pm2 logs foodbook
 
 **Lösung:**
 ```powershell
-cd C:\inetpub\wwwroot\foodbook\client
+cd C:\inetpub\wwwroot\tagesteller\client
 npm run build
 # Überprüfe: dist\index.html existiert?
 ```
@@ -484,7 +484,7 @@ pm2-startup install
 **Lösung:**
 ```powershell
 # IIS Application Pool Identität Schreibrechte geben
-icacls "C:\inetpub\wwwroot\foodbook\server" /grant "IIS AppPool\Foodbook:(OI)(CI)F" /T
+icacls "C:\inetpub\wwwroot\tagesteller\server" /grant "IIS AppPool\TagesTeller:(OI)(CI)F" /T
 ```
 
 ### Problem: Port 3001 bereits belegt
@@ -502,7 +502,7 @@ icacls "C:\inetpub\wwwroot\foodbook\server" /grant "IIS AppPool\Foodbook:(OI)(CI
 
 **PM2 Logs:**
 ```powershell
-pm2 logs foodbook --lines 200
+pm2 logs tagesteller --lines 200
 ```
 
 **IIS Logs:**
@@ -522,10 +522,10 @@ C:\inetpub\logs\LogFiles\W3SVC1\
 
 ```powershell
 # HTTP (Port 80)
-New-NetFirewallRule -DisplayName "Foodbook HTTP" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "TagesTeller HTTP" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
 
 # HTTPS (Port 443)
-New-NetFirewallRule -DisplayName "Foodbook HTTPS" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "TagesTeller HTTPS" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow
 ```
 
 **Hinweis:** Port 3001 muss NICHT nach außen freigegeben werden, da IIS als Reverse Proxy fungiert.
@@ -576,9 +576,9 @@ SQLite Datenbank
 - ✅ Windows-native Lösung
 
 **Wichtige Dateien:**
-- `C:\inetpub\wwwroot\foodbook\ecosystem.config.cjs` - PM2 Konfiguration
-- `C:\inetpub\wwwroot\foodbook\client\dist\web.config` - IIS Konfiguration
-- `C:\inetpub\wwwroot\foodbook\server\foodbook.db` - Datenbank
+- `C:\inetpub\wwwroot\tagesteller\ecosystem.config.cjs` - PM2 Konfiguration
+- `C:\inetpub\wwwroot\tagesteller\client\dist\web.config` - IIS Konfiguration
+- `C:\inetpub\wwwroot\tagesteller\server\tagesteller.db` - Datenbank
 
 ---
 
@@ -593,10 +593,10 @@ Bei Problemen durchgehen:
 - [ ] URL Rewrite installiert?
 - [ ] ARR Proxy aktiviert?
 - [ ] Firewall-Regeln gesetzt?
-- [ ] Logs überprüft? `pm2 logs foodbook`
+- [ ] Logs überprüft? `pm2 logs tagesteller`
 
 ---
 
-**Erstellt für:** Foodbook v1.0  
+**Erstellt für:** TagesTeller v1.0  
 **Getestet auf:** Windows Server 2019/2022  
 **Letzte Aktualisierung:** März 2026

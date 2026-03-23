@@ -41,6 +41,24 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
     return Response.json({ success: true });
   }
 
+  // GET /api/orders/user-dates?user_id=X
+  if (req.method === "GET" && path === "/api/orders/user-dates") {
+    const userId = url.searchParams.get("user_id");
+    
+    if (!userId) {
+      return Response.json([]);
+    }
+
+    const rows = db.query(`
+      SELECT DISTINCT order_date
+      FROM orders
+      WHERE user_id = $user_id
+      ORDER BY order_date
+    `).all({ $user_id: parseInt(userId) }) as { order_date: string }[];
+    
+    return Response.json(rows.map(r => r.order_date));
+  }
+
   // GET /api/orders/check?user_id=X&date=YYYY-MM-DD
   if (req.method === "GET" && path === "/api/orders/check") {
     const userId = url.searchParams.get("user_id");
