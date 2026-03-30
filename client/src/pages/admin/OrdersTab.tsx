@@ -171,7 +171,7 @@ export default function OrdersTab() {
                         text-align: center;
                     }
                     .remarks-cell {
-                        width: 200px;
+                        width: 250px;
                     }
                     @media print {
                         body {
@@ -187,8 +187,9 @@ export default function OrdersTab() {
                         <tr>
                             <th>Nr.</th>
                             <th>Name</th>
+                            <th>Menü</th>
+                            <th class="remarks-cell">Bemerkung</th>
                             <th class="checkbox-cell">Bezahlt</th>
-                            <th class="remarks-cell">Bemerkungen</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -196,8 +197,9 @@ export default function OrdersTab() {
                             <tr>
                                 <td>${index + 1}</td>
                                 <td>${order.user_fullname || order.customer_name}</td>
+                                <td>${order.items || '–'}</td>
+                                <td class="remarks-cell">${order.remarks || '–'}</td>
                                 <td class="checkbox-cell">☐</td>
-                                <td class="remarks-cell"></td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -362,6 +364,7 @@ export default function OrdersTab() {
                                     </Box>
                                 </TableCell>
                                 <TableCell>Speisen</TableCell>
+                                <TableCell>Bemerkung</TableCell>
                                 <TableCell
                                     onClick={() => handleSort("date")}
                                     sx={{cursor: "pointer", userSelect: "none"}}
@@ -427,6 +430,20 @@ export default function OrdersTab() {
                                             }}
                                         >
                                             {o.items ?? "–"}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{
+                                                maxWidth: 200,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {o.remarks || "–"}
                                         </Typography>
                                     </TableCell>
                                     <TableCell>

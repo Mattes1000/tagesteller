@@ -53,7 +53,7 @@ export default function OrderPage() {
 
   useEffect(() => {
     if (user) {
-      checkOrderForDate(user.id, selectedDate).then((res) => setHasOrder(res.hasOrder));
+      checkOrderForDate(selectedDate).then((res) => setHasOrder(res.hasOrder));
     } else {
       setHasOrder(false);
     }

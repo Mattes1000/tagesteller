@@ -68,6 +68,7 @@ db.exec(`
     customer_name TEXT NOT NULL,
     order_date TEXT NOT NULL DEFAULT (date('now')),
     total REAL NOT NULL DEFAULT 0,
+    remarks TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

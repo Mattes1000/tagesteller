@@ -1,5 +1,33 @@
 import { db } from "../db";
 
+interface MenuRow {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  active: number;
+  max_quantity: number | null;
+  dates: string;
+  created_at: string;
+}
+
+interface MenuWithAvailability extends MenuRow {
+  remaining_quantity: number | null;
+}
+
+interface OrderedCountResult {
+  total: number;
+}
+
+interface DbMenu {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  active: number;
+  created_at: string;
+}
+
 export async function handleMenus(req: Request, url: URL): Promise<Response | null> {
   const path = url.pathname;
 
@@ -16,17 +44,17 @@ export async function handleMenus(req: Request, url: URL): Promise<Response | nu
       WHERE m.active = 1 AND md.available_date = $date
       GROUP BY m.id
       ORDER BY m.name
-    `).all({ $date: date }) as any[];
+    `).all({ $date: date }) as MenuRow[];
     
     // Calculate remaining quantity for each menu
-    const menusWithAvailability = rows.map(menu => {
+    const menusWithAvailability: MenuWithAvailability[] = rows.map(menu => {
       if (menu.max_quantity !== null) {
         const orderedCount = db.query(`
           SELECT COALESCE(SUM(oi.quantity), 0) as total
           FROM order_items oi
           JOIN orders o ON o.id = oi.order_id
           WHERE oi.menu_id = $menu_id AND o.order_date = $date
-        `).get({ $menu_id: menu.id, $date: date }) as { total: number };
+        `).get({ $menu_id: menu.id, $date: date }) as OrderedCountResult;
         
         return {
           ...menu,
@@ -182,7 +210,7 @@ async function handleUpdate(req: Request, id: number): Promise<Response> {
 }
 
 function handleCopy(id: number): Response {
-  const original = db.query("SELECT * FROM menus WHERE id = $id").get({ $id: id }) as any;
+  const original = db.query("SELECT * FROM menus WHERE id = $id").get({ $id: id }) as DbMenu | null;
   
   if (!original) return new Response("Not Found", { status: 404 });
   

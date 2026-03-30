@@ -5,6 +5,8 @@ export interface Menu {
   price: number;
   active: number;
   dates: string;
+  max_quantity?: number | null;
+  remaining_quantity?: number | null;
   menuDays?: { available_date: string; max_quantity: number | null }[];
   created_at?: string;
 }
@@ -18,9 +20,14 @@ export interface User {
   id: number;
   firstname: string;
   lastname: string;
+  username?: string;
   role: "admin" | "manager" | "user";
   qr_token: string;
   created_at?: string;
+}
+
+export interface LoginResponse extends User {
+  token: string;
 }
 
 export interface Order {
@@ -31,6 +38,7 @@ export interface Order {
   customer_name: string;
   order_date: string;
   total: number;
+  remarks?: string;
   items: string;
   created_at: string;
 }

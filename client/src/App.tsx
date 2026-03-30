@@ -5,6 +5,7 @@ import MenuPage from "./pages/MenuPage";
 import AdminPage from "./pages/AdminPage";
 import QrLoginPage from "./pages/QrLoginPage";
 import LoginPage from "./pages/LoginPage";
+import UserOrdersPage from "./pages/UserOrdersPage";
 
 function App() {
   return (
@@ -20,6 +21,8 @@ function App() {
                 <Routes>
                   <Route path="/" element={<MenuPage />} />
                   <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/my-orders" element={<UserOrdersPage />} />
+                  <Route path="/orders/user/:userId" element={<UserOrdersPage />} />
                 </Routes>
               </Layout>
             }

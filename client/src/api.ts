@@ -1,6 +1,22 @@
-import type { Menu, Order, User } from "./types";
+import type { Menu, Order, User, LoginResponse } from "./types";
 
 const BASE = "/api";
+
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  return headers;
+}
 
 // Menu API
 export async function getMenus(date?: string): Promise<Menu[]> {
@@ -66,8 +82,12 @@ export async function deleteMenu(id: number): Promise<void> {
   await fetch(`${BASE}/menus/${id}`, { method: "DELETE" });
 }
 
-export async function checkOrderForDate(userId: number, date: string): Promise<{ hasOrder: boolean; menuId: number | null }> {
-  const res = await fetch(`${BASE}/orders/check?user_id=${userId}&date=${date}`);
+export async function checkOrderForDate(date: string, userId?: number): Promise<{ hasOrder: boolean; menuId: number | null }> {
+  const params = new URLSearchParams({ date });
+  if (userId !== undefined) {
+    params.append("user_id", userId.toString());
+  }
+  const res = await fetch(`${BASE}/orders/check?${params.toString()}`, { headers: getHeaders() });
   return res.json();
 }
 
@@ -77,6 +97,7 @@ export async function placeOrder(data: {
   order_date?: string;
   menu_id: number;
   quantity?: number;
+  remarks?: string;
 }): Promise<{ id: number; total: number } | { error: string }> {
   const res = await fetch(`${BASE}/orders`, {
     method: "POST",
@@ -89,6 +110,26 @@ export async function placeOrder(data: {
 export async function getOrders(userId?: number): Promise<Order[]> {
   const q = userId ? `?user_id=${userId}` : "";
   const res = await fetch(`${BASE}/orders${q}`);
+  return res.json();
+}
+
+export async function getMyOrders(fromDate?: string, toDate?: string): Promise<Order[]> {
+  let url = `${BASE}/orders/my`;
+  const params = new URLSearchParams();
+  if (fromDate) params.append("from_date", fromDate);
+  if (toDate) params.append("to_date", toDate);
+  if (params.toString()) url += `?${params.toString()}`;
+  const res = await fetch(url, { headers: getHeaders() });
+  return res.json();
+}
+
+export async function getUserOrders(userId: number, fromDate?: string, toDate?: string): Promise<Order[]> {
+  let url = `${BASE}/orders/user/${userId}`;
+  const params = new URLSearchParams();
+  if (fromDate) params.append("from_date", fromDate);
+  if (toDate) params.append("to_date", toDate);
+  if (params.toString()) url += `?${params.toString()}`;
+  const res = await fetch(url, { headers: getHeaders() });
   return res.json();
 }
 
@@ -132,13 +173,13 @@ export async function unlockOrderDate(date: string): Promise<{ success: boolean 
   return res.json();
 }
 
-export async function loginByQr(token: string): Promise<User | null> {
+export async function loginByQr(token: string): Promise<LoginResponse | null> {
   const res = await fetch(`${BASE}/auth/qr/${token}`);
   if (!res.ok) return null;
   return res.json();
 }
 
-export async function loginByPassword(username: string, password: string): Promise<User | null> {
+export async function loginByPassword(username: string, password: string): Promise<LoginResponse | null> {
   const res = await fetch(`${BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -98,6 +98,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                       {user.firstname} {user.lastname}
                     </Typography>
+                    <Button
+                      component={Link}
+                      to="/my-orders"
+                      variant="outlined"
+                      size="small"
+                      sx={{ color: "white", borderColor: "white" }}
+                    >
+                      Meine Bestellungen
+                    </Button>
                     {canAccessAdmin && (
                       <Button
                         onClick={() => setPasswordDialogOpen(true)}
@@ -165,6 +174,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <>
                       <MenuItem disabled>
                         {user.firstname} {user.lastname}
+                      </MenuItem>
+                      <MenuItem component={Link} to="/my-orders" onClick={handleMenuClose}>
+                        Meine Bestellungen
                       </MenuItem>
                       {canAccessAdmin && (
                         <MenuItem onClick={() => { setPasswordDialogOpen(true); handleMenuClose(); }}>
