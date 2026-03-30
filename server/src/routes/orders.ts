@@ -194,7 +194,7 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
       SELECT o.*,
              u.firstname || ' ' || u.lastname as user_fullname,
              u.role as user_role,
-             GROUP_CONCAT(m.name || ' x' || oi.quantity) as items
+             GROUP_CONCAT(m.name) as items
       FROM orders o
       LEFT JOIN users u ON u.id = o.user_id
       LEFT JOIN order_items oi ON oi.order_id = o.id
