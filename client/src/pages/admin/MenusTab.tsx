@@ -28,7 +28,6 @@ import {
   DialogContent,
   DialogActions,
   Card,
-  CardContent,
 } from "@mui/material";
 import { ContentCopy, Delete, Edit as EditIcon, ArrowUpward, ArrowDownward, Add, ChevronLeft, ChevronRight } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -140,14 +139,14 @@ export default function MenusTab() {
       const dayDataPromises = weekDays.map(async (day) => {
         const dateStr = day.format('YYYY-MM-DD');
         const menus = await getMenus(dateStr);
-        
+
         return {
           date: dateStr,
           dayName: day.locale('de').format('dddd, DD.MM.YYYY'),
           menus,
         };
       });
-      
+
       const data = await Promise.all(dayDataPromises);
       setWeekData(data);
     } finally {
@@ -476,11 +475,11 @@ export default function MenusTab() {
                                   <Typography variant="body2" color="primary" sx={{ fontWeight: 700 }}>
                                     {menu.price.toFixed(2).replace('.', ',')}&nbsp;€
                                   </Typography>
-                                  {(menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (
+                                  {menu.max_quantity !== null && menu.max_quantity !== undefined && (
                                     <Chip
-                                      label={`${(menu as any).remaining_quantity ?? 0}/${(menu as any).max_quantity}`}
+                                      label={`${menu.remaining_quantity ?? 0}/${menu.max_quantity}`}
                                       size="small"
-                                      color={(menu as any).remaining_quantity > 0 ? "default" : "error"}
+                                      color={menu.remaining_quantity && menu.remaining_quantity > 0 ? "default" : "error"}
                                     />
                                   )}
                                   <IconButton size="small" color="primary" onClick={() => openEdit(menu.id)}>

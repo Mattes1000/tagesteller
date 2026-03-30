@@ -3,6 +3,7 @@ import { handleOrders } from "./routes/orders";
 import { handleUsers } from "./routes/users";
 import { handleBackup } from "./routes/backup";
 import { join } from "path";
+import { db } from "./db";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,18 @@ const CORS = {
 
 const PORT = parseInt(process.env.PORT ?? "3001");
 const DIST_DIR = join(import.meta.dir, "../../client/dist");
+
+// Migration: add remarks to orders if missing
+try {
+  const cols = db.query("PRAGMA table_info(orders)").all() as { name: string }[];
+  if (cols.length > 0 && !cols.find((c) => c.name === "remarks")) {
+    console.log("Running migration: Adding 'remarks' column to orders table...");
+    db.exec("ALTER TABLE orders ADD COLUMN remarks TEXT;");
+    console.log("Migration completed: 'remarks' column added successfully.");
+  }
+} catch (err) {
+  console.error("Migration error:", err);
+}
 
 async function serveStatic(pathname: string): Promise<Response | null> {
   const tryPaths = [

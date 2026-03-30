@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import { getUsers, createUser, updateUser, deleteUser, regenerateQrToken, adminResetPassword } from "../../api";
 import type { User } from "../../types";
@@ -28,7 +29,7 @@ import {
   Alert,
   IconButton,
 } from "@mui/material";
-import { QrCode2, Edit, Delete, Print, Refresh, ArrowUpward, ArrowDownward, Lock } from "@mui/icons-material";
+import { QrCode2, Edit, Delete, Print, Refresh, ArrowUpward, ArrowDownward, Lock, Receipt } from "@mui/icons-material";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -45,6 +46,7 @@ const ROLE_COLORS: Record<string, "error" | "info" | "default"> = {
 const EMPTY_FORM = { firstname: "", lastname: "", username: "", role: "user" };
 
 export default function UsersTab() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -116,7 +118,7 @@ export default function UsersTab() {
 
   const openEdit = (u: User) => {
     setEditId(u.id);
-    setForm({ firstname: u.firstname, lastname: u.lastname, username: u.username, role: u.role });
+    setForm({ firstname: u.firstname, lastname: u.lastname, username: u.username || "", role: u.role });
     setDialogOpen(true);
   };
 
@@ -290,6 +292,14 @@ export default function UsersTab() {
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => navigate(`/orders/user/${u.id}`)}
+                          title="Bestellungen anzeigen"
+                        >
+                          <Receipt fontSize="small" />
+                        </IconButton>
                         <IconButton
                           size="small"
                           color="success"

@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { randomUUID } from "crypto";
+import { signJWT } from "../jwt";
 
 export async function handleUsers(req: Request, url: URL): Promise<Response | null> {
   const path = url.pathname;
@@ -21,8 +22,9 @@ export async function handleUsers(req: Request, url: URL): Promise<Response | nu
     const valid = await Bun.password.verify(password, user.password_hash);
     if (!valid) return new Response("Unauthorized", { status: 401 });
 
+    const token = await signJWT({ userId: user.id, role: user.role });
     const { password_hash: _, ...safeUser } = user;
-    return Response.json(safeUser);
+    return Response.json({ ...safeUser, token });
   }
 
   // GET /api/auth/qr/:token  — QR-Login
@@ -33,7 +35,8 @@ export async function handleUsers(req: Request, url: URL): Promise<Response | nu
       id: number; firstname: string; lastname: string; role: string; qr_token: string;
     } | null;
     if (!user) return new Response("Unauthorized", { status: 401 });
-    return Response.json(user);
+    const jwtToken = await signJWT({ userId: user.id, role: user.role });
+    return Response.json({ ...user, token: jwtToken });
   }
 
   // GET /api/users  — alle User (admin/manager)

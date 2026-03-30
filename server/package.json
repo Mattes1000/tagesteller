@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "bun-types": "latest"
+  },
+  "dependencies": {
+    "jose": "^6.2.2"
   }
 }

@@ -13,9 +13,10 @@ export default function QrLoginPage() {
 
   useEffect(() => {
     if (!token) { setError(true); return; }
-    loginByQr(token).then((user) => {
-      if (user) {
-        login(user);
+    loginByQr(token).then((result) => {
+      if (result && result.token) {
+        const { token: jwtToken, ...user } = result;
+        login(user, jwtToken);
         navigate("/", { replace: true });
       } else {
         setError(true);

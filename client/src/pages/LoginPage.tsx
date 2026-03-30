@@ -32,9 +32,10 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const user = await loginByPassword(username.trim(), password);
-      if (user) {
-        login(user);
+      const result = await loginByPassword(username.trim(), password);
+      if (result && result.token) {
+        const { token, ...user } = result;
+        login(user, token);
         navigate("/", { replace: true });
       } else {
         setError("Benutzername oder Passwort ungültig.");

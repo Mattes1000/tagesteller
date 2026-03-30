@@ -21,6 +21,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
 } from "@mui/material";
 import { CheckCircle, Login, Delete } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -52,6 +53,8 @@ export default function MenuPage() {
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [remarks, setRemarks] = useState<string>("");
 
   const isAdmin = user && (user.role === "admin" || user.role === "manager");
 
@@ -79,7 +82,7 @@ export default function MenuPage() {
   useEffect(() => {
     if (user) {
       const dateStr = selectedDate.format('YYYY-MM-DD');
-      checkOrderForDate(user.id, dateStr).then((res) => {
+      checkOrderForDate(dateStr).then((res) => {
         setHasOrder(res.hasOrder);
         setOrderedMenuId(res.menuId);
       });
@@ -97,16 +100,16 @@ export default function MenuPage() {
       return;
     }
 
-    // Admin/Manager: Zeige Dialog zur Benutzerauswahl
+    // Zeige Dialog für alle Benutzer
+    setSelectedMenu(menu);
+    setRemarks("");
+    
     if (isAdmin) {
-      setSelectedMenu(menu);
       setSelectedUserId(null);
       setAdminDialogOpen(true);
-      return;
+    } else {
+      setOrderDialogOpen(true);
     }
-
-    // Normale Benutzer: Direkt bestellen
-    await placeOrderForUser(menu, user.id, `${user.firstname} ${user.lastname}`);
   };
 
   const placeOrderForUser = async (menu: Menu, userId: number, customerName: string) => {
@@ -121,6 +124,7 @@ export default function MenuPage() {
         order_date: dateStr,
         menu_id: menu.id,
         quantity: 1,
+        remarks: remarks.trim() || undefined,
       });
 
       if ("error" in result) {
@@ -157,6 +161,21 @@ export default function MenuPage() {
     setAdminDialogOpen(false);
     setSelectedMenu(null);
     setSelectedUserId(null);
+    setRemarks("");
+  };
+
+  const handleUserOrderConfirm = async () => {
+    if (!selectedMenu || !user) return;
+
+    await placeOrderForUser(
+      selectedMenu,
+      user.id,
+      `${user.firstname} ${user.lastname}`
+    );
+
+    setOrderDialogOpen(false);
+    setSelectedMenu(null);
+    setRemarks("");
   };
 
   const handleCancelOrder = async (event: React.MouseEvent) => {
@@ -321,13 +340,13 @@ export default function MenuPage() {
                       </Card>
                     )}
 
-                    {!isDateLocked && (menu as any).max_quantity !== null && (menu as any).max_quantity !== undefined && (
+                    {!isDateLocked && menu.max_quantity !== null && menu.max_quantity !== undefined && (
                       <Box sx={{ mb: 2 }}>
-                        {(menu as any).remaining_quantity !== null && (menu as any).remaining_quantity !== undefined && (
+                        {menu.remaining_quantity !== null && menu.remaining_quantity !== undefined && (
                           <Chip
-                            label={`Noch ${(menu as any).remaining_quantity} von ${(menu as any).max_quantity} verfügbar`}
+                            label={`Noch ${menu.remaining_quantity} von ${menu.max_quantity} verfügbar`}
                             size="small"
-                            color={(menu as any).remaining_quantity > 0 ? "default" : "error"}
+                            color={menu.remaining_quantity > 0 ? "default" : "error"}
                             sx={{ fontWeight: 600 }}
                           />
                         )}
@@ -375,7 +394,7 @@ export default function MenuPage() {
                         >
                           Bereits für heute bestellt
                         </Button>
-                      ) : (menu as any).remaining_quantity === 0 ? (
+                      ) : menu.remaining_quantity === 0 ? (
                         <Button
                           fullWidth
                           variant="outlined"
@@ -402,6 +421,38 @@ export default function MenuPage() {
         </Grid>
       )}
 
+      <Dialog open={orderDialogOpen} onClose={() => setOrderDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Bestellung aufgeben</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+            {selectedMenu && (
+              <Alert severity="info">
+                Menü: <strong>{selectedMenu.name}</strong> ({selectedMenu.price.toFixed(2).replace('.', ',')}&nbsp;€)
+              </Alert>
+            )}
+
+            <TextField
+              fullWidth
+              label="Bemerkung (optional)"
+              multiline
+              rows={3}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="z.B. Allergien, Sonderwünsche..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOrderDialogOpen(false)}>Abbrechen</Button>
+          <Button
+            variant="contained"
+            onClick={handleUserOrderConfirm}
+          >
+            Bestellung aufgeben
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={adminDialogOpen} onClose={() => setAdminDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Bestellung für Benutzer aufgeben</DialogTitle>
         <DialogContent>
@@ -426,6 +477,16 @@ export default function MenuPage() {
                 ))}
               </Select>
             </FormControl>
+
+            <TextField
+              fullWidth
+              label="Bemerkung (optional)"
+              multiline
+              rows={3}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="z.B. Allergien, Sonderwünsche..."
+            />
           </Box>
         </DialogContent>
         <DialogActions>

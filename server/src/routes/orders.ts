@@ -1,4 +1,10 @@
 import { db } from "../db";
+import { authenticate } from "../jwt";
+
+interface QueryParams {
+  $user_id: number;
+  [key: string]: string | number;
+}
 
 export async function handleOrders(req: Request, url: URL): Promise<Response | null> {
   const path = url.pathname;
@@ -59,13 +65,26 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
     return Response.json(rows.map(r => r.order_date));
   }
 
-  // GET /api/orders/check?user_id=X&date=YYYY-MM-DD
+  // GET /api/orders/check?date=YYYY-MM-DD (optional: user_id für Admins)
   if (req.method === "GET" && path === "/api/orders/check") {
-    const userId = url.searchParams.get("user_id");
+    const authUser = await authenticate(req);
+    const userIdParam = url.searchParams.get("user_id");
     const date = url.searchParams.get("date") ?? new Date().toISOString().split("T")[0];
     
-    if (!userId) {
-      return Response.json({ hasOrder: false, menuId: null });
+    // Wenn keine userId angegeben: Verwende userId aus JWT
+    // Wenn userId angegeben: Nur Admins dürfen andere User prüfen
+    let userId: number;
+    
+    if (userIdParam) {
+      if (!authUser || (authUser.role !== "admin" && authUser.role !== "manager")) {
+        return Response.json({ error: "Keine Berechtigung." }, { status: 403 });
+      }
+      userId = parseInt(userIdParam);
+    } else {
+      if (!authUser) {
+        return Response.json({ error: "Nicht authentifiziert." }, { status: 401 });
+      }
+      userId = authUser.userId;
     }
 
     const existingOrder = db.query(`
@@ -74,12 +93,98 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
       LEFT JOIN order_items oi ON oi.order_id = o.id
       WHERE o.user_id = $user_id AND o.order_date = $date
       LIMIT 1
-    `).get({ $user_id: parseInt(userId), $date: date }) as { id: number; menu_id: number } | null;
+    `).get({ $user_id: userId, $date: date }) as { id: number; menu_id: number } | null;
     
     return Response.json({ 
       hasOrder: !!existingOrder,
       menuId: existingOrder?.menu_id ?? null
     });
+  }
+
+  // GET /api/orders/my?from_date=X&to_date=Y - Eigene Bestellungen
+  if (req.method === "GET" && path === "/api/orders/my") {
+    const authUser = await authenticate(req);
+    if (!authUser) {
+      return Response.json({ error: "Nicht authentifiziert." }, { status: 401 });
+    }
+
+    const fromDate = url.searchParams.get("from_date");
+    const toDate = url.searchParams.get("to_date");
+    
+    let query = `
+      SELECT o.*,
+             u.firstname || ' ' || u.lastname as user_fullname,
+             u.role as user_role,
+             GROUP_CONCAT(m.name) as items
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN order_items oi ON oi.order_id = o.id
+      LEFT JOIN menus m ON m.id = oi.menu_id
+      WHERE o.user_id = $user_id
+    `;
+    
+    const params: QueryParams = { $user_id: authUser.userId };
+    
+    if (fromDate) {
+      query += " AND o.order_date >= $from_date";
+      params.$from_date = fromDate;
+    }
+    
+    if (toDate) {
+      query += " AND o.order_date <= $to_date";
+      params.$to_date = toDate;
+    }
+    
+    query += " GROUP BY o.id ORDER BY o.order_date DESC";
+    
+    const rows = db.query(query).all(params);
+    return Response.json(rows);
+  }
+
+  // GET /api/orders/user/:userId?from_date=X&to_date=Y - Nur für Admins
+  const matchUserOrders = path.match(/^\/api\/orders\/user\/(\d+)$/);
+  if (req.method === "GET" && matchUserOrders) {
+    const authUser = await authenticate(req);
+    if (!authUser) {
+      return Response.json({ error: "Nicht authentifiziert." }, { status: 401 });
+    }
+
+    if (authUser.role !== "admin" && authUser.role !== "manager") {
+      return Response.json({ error: "Keine Berechtigung." }, { status: 403 });
+    }
+
+    const userId = parseInt(matchUserOrders[1]);
+    const fromDate = url.searchParams.get("from_date");
+    const toDate = url.searchParams.get("to_date");
+    
+    let query = `
+      SELECT o.*,
+             u.firstname || ' ' || u.lastname as user_fullname,
+             u.role as user_role,
+             GROUP_CONCAT(m.name) as items
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN order_items oi ON oi.order_id = o.id
+      LEFT JOIN menus m ON m.id = oi.menu_id
+      WHERE o.user_id = $user_id
+    `;
+    
+    const params: QueryParams = { $user_id: userId };
+    
+    if (fromDate) {
+      query += " AND o.order_date >= $from_date";
+      params.$from_date = fromDate;
+    }
+    
+    if (toDate) {
+      query += " AND o.order_date <= $to_date";
+      params.$to_date = toDate;
+    }
+    
+    query += " GROUP BY o.id ORDER BY o.order_date DESC";
+    
+    const rows = db.query(query).all(params);
+    return Response.json(rows);
   }
 
   // GET /api/orders?user_id=X
@@ -109,8 +214,9 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
       order_date?: string;
       menu_id: number;
       quantity?: number;
+      remarks?: string;
     };
-    const { customer_name, user_id, order_date, menu_id, quantity = 1 } = body;
+    const { customer_name, user_id, order_date, menu_id, quantity = 1, remarks } = body;
     if (!customer_name || !menu_id) {
       return new Response("Bad Request", { status: 400 });
     }
@@ -183,8 +289,8 @@ export async function handleOrders(req: Request, url: URL): Promise<Response | n
 
     const total = menu.price * quantity;
 
-    db.query("INSERT INTO orders (customer_name, user_id, order_date, total) VALUES ($name, $user_id, $order_date, $total)")
-      .run({ $name: customer_name, $user_id: user_id ?? null, $order_date: targetDate, $total: total });
+    db.query("INSERT INTO orders (customer_name, user_id, order_date, total, remarks) VALUES ($name, $user_id, $order_date, $total, $remarks)")
+      .run({ $name: customer_name, $user_id: user_id ?? null, $order_date: targetDate, $total: total, $remarks: remarks ?? null });
     const order = db.query("SELECT last_insert_rowid() as id").get() as { id: number };
 
     db.query("INSERT INTO order_items (order_id, menu_id, quantity, price_at_order) VALUES ($order_id, $menu_id, $quantity, $price)")
